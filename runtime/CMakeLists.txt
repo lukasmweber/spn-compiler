@@ -18,7 +18,7 @@ target_include_directories(spnc-rt
         PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_link_libraries(spnc-rt PRIVATE elf spnc-common spdlog::spdlog)
+target_link_libraries(spnc-rt PRIVATE elf spnc-common spdlog::spdlog tapasco)
 
 option(CPU_PARALLEL_RUNTIME
         "Enable/disable thread-parallel execution of multiple batches on CPU in the runtime"

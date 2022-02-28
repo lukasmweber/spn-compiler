@@ -77,6 +77,8 @@ namespace spnc_rt {
 
     void executeGPU(size_t num_samples, void* inputs, void* outputs);
 
+    void executeFPGA(size_t num_samples, void* inputs, void* outputs);
+
   };
 
 }

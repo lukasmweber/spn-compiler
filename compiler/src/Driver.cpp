@@ -30,6 +30,14 @@ Kernel spn_compiler::compileQuery(const std::string& inputFile, const options_t&
     SPNC_FATAL_ERROR("Target was 'CUDA', but the compiler does not support CUDA GPUs. "
                      "Enable with CUDA_GPU_SUPPORT=ON during build")
 #endif
+  } else if (spnc::option::compilationTarget.get(*config) == option::TargetMachine::FPGA) {
+#if XIL_FPGA_SUPPORT
+      pipeline = FPGAToolchain::setupPipeline(inputFile, std::move(conifg));
+#else
+      SPNC_FATAL_ERROR("Target was 'FPGA', but the compiler does not support FPGAs. "
+                       "Enable with XIL_FPGA_SUPPORT=ON during build")
+#endif
+
   } else {
     pipeline = CPUToolchain::setupPipeline(inputFile, std::move(config));
   }
@@ -50,6 +58,13 @@ bool spn_compiler::isTargetSupported(const std::string& target){
   }
   if(target == "CUDA"){
     #if SPNC_CUDA_SUPPORT
+    return true;
+    #else
+    return false;
+    #endif
+  }
+  if(target == "FPGA"){
+    #if XIL_FPGA_SUPPORT
     return true;
     #else
     return false;

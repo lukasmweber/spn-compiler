@@ -65,6 +65,21 @@ target_include_directories(spnc
         ${CAPNP_HDR_DIRS}
         ${CAPNPC_OUTPUT_DIR})
 
+if (${XIL_FPGA_SUPPORT})
+    #
+    #
+    #
+
+    target_sources(spnc PRIVATE
+            src/toolchain/FPGAToolchain.cpp
+            src/pipeline/steps/fpga/RunXSPNFPGA.cpp
+            )
+
+    #
+    target_link_libraries(spnc PRIVATE tapasco ${CMAKE_THREAD_LIBS_INIT})
+endif (${XIL_FPGA_SUPPORT})
+
+
 if (${CUDA_GPU_SUPPORT})
     #
     # If support for CUDA GPUs is enabled, add additinal source files, header directores and libraries.

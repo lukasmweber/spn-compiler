@@ -28,10 +28,19 @@ option(CUDA_GPU_SUPPORT
         OFF
         )
 
+option(XIL_FPGA_SUPPORT
+        "Enable/disable support for TaPaSCo-supported Xilinx FPGAs. Requires a working installation of xspn-fpga and tapasco"
+        ON
+        )
+
 if (${CUDA_GPU_SUPPORT})
     include(CudaToolkit.cmake)
     cuda_setup()
 endif (${CUDA_GPU_SUPPORT})
+
+if (${XIL_FPGA_SUPPORT})
+    find_package(Tapasco REQUIRED)
+endif (${XIL_FPGA_SUPPORT})
 
 set(SPNC_CXX_WARNING_LEVEL "-Wall")
 

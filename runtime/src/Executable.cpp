@@ -10,6 +10,7 @@
 #include <iostream>
 #include <util/Logging.h>
 #include "Executable.h"
+#include <tapasco.hpp>
 #include <omp.h>
 #include <chrono>
 
@@ -44,6 +45,8 @@ void Executable::execute(size_t num_elements, void* inputs, void* outputs) {
   }
   if (kernel->target() == KernelTarget::CUDA) {
     executeGPU(num_elements, inputs, outputs);
+  } else if (kernel->target() == KernelTarget::FPGA) {
+      executeFPGA(num_elements, inputs, outputs);
   } else {
     assert(kernel->target() == KernelTarget::CPU);
     if (kernel->batchSize() == 1) {
@@ -111,6 +114,40 @@ void Executable::executeGPU(size_t num_samples, void* inputs, void* outputs) {
   // Investigate this further.
   kernel_func(inputs, inputs, 0, num_samples, kernel->numFeatures(), kernel->numFeatures(), 1,
               outputs, outputs, 0, 1, num_samples, 1, 1);
+}
+
+void Executable::executeFPGA(size_t num_samples, void *inputs, void *outputs) {
+    tapasco::PEId peid = 1; // PEid is always 1 when building using spnc and xspn-fpga
+    tapasco::Tapasco tapasco;
+
+    std::cout << "Using PEId: " << peid << std::endl;
+
+    // for FPGA Execution, the input array and output array have to be matched to the on-chip memory access width
+    // By default this width is 512 bits (64 bytes). Execution can only happen in corresponding batches.
+    // Inputs that dont fit have to be padded accordingly.
+    unsigned batch_size = 64 * kernel->bytesPerResult() * (kernel->bytesPerFeature() * kernel->numFeatures());
+    unsigned samples_per_batch = 64 * kernel->bytesPerResult();
+    unsigned batches;
+    if(num_samples % samples_per_batch == 0) {
+        batches = num_samples / samples_per_batch;
+    } else {
+        batches = num_samples / samples_per_batch + 1;
+    }
+    size_t input_size = batches * samples_per_batch * kernel->bytesPerFeature() * kernel->numFeatures();
+    size_t output_size = batches * samples_per_batch * kernel->bytesPerResult();
+    char* in = new char[input_size / sizeof(char)];
+    char* out = new char[output_size / sizeof(char)];
+    memcpy(in, inputs, num_samples * kernel->bytesPerFeature() * kernel->numFeatures());
+    auto inbuffer = tapasco::makeInOnly(tapasco::makeWrappedPointer(in, input_size));
+    auto obuffer = tapasco::makeOutOnly(tapasco::makeWrappedPointer(out, output_size));
+
+    int res = -1;
+    tapasco::RetVal<int> ret_val(&res);
+
+    auto job = tapasco.launch(peid, ret_val, inbuffer, input_size / 64, obuffer, output_size / 64);
+    job();
+    memcpy(outputs, out, num_samples * kernel->bytesPerResult());
+
 }
 
 void Executable::initialize() {
